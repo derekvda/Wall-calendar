@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wall Calendar Dashboard</title>
+  
+  <!-- FullCalendar + iCal Plugin via CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/ical.js@1.5.0/build/ical.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/icalendar@6.1.11/index.global.min.js"></script>
+
+  <style>
+    :root {
+      --bg-color: #0f1117;
+      --card-bg: #1a1d24;
+      --border-color: #2b303c;
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --accent: #3b82f6;
+      --today-bg: rgba(59, 130, 246, 0.08);
+      --today-border: #3b82f6;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      padding: 24px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 20px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 12px;
+    }
+
+    .time-display {
+      font-size: 2.5rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+    }
+
+    .date-display {
+      font-size: 1.25rem;
+      color: var(--text-muted);
+    }
+
+    #calendar {
+      flex: 1;
+      height: 100%;
+    }
+
+    /* FullCalendar Dark Theme Overrides */
+    .fc {
+      --fc-border-color: var(--border-color);
+      --fc-page-bg-color: transparent;
+      --fc-neutral-bg-color: var(--card-bg);
+      --fc-today-bg-color: var(--today-bg);
+      font-size: 0.95rem;
+    }
+
+    .fc .fc-toolbar {
+      display: none; /* Hide default nav toolbar for kiosk view */
+    }
+
+    .fc .fc-col-header-cell {
+      padding: 12px 0;
+      background: var(--card-bg);
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.85rem;
+      letter-spacing: 0.05em;
+    }
+
+    .fc .fc-col-header-cell.fc-day-today {
+      color: var(--accent);
+      border-bottom: 2px solid var(--today-border);
+    }
+
+    .fc-theme-standard td, .fc-theme-standard th {
+      border-color: var(--border-color);
+    }
+
+    .fc-event {
+      background-color: #2563eb !important;
+      border: none !important;
+      border-left: 4px solid #60a5fa !important;
+      padding: 4px 6px;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      margin-bottom: 4px;
+    }
+
+    .fc-event-title {
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="time-display" id="clock">--:--</div>
+    <div class="date-display" id="currentDate">--</div>
+  </header>
+
+  <div id="calendar"></div>
+
+  <script>
+    // -----------------------------------------------------------
+    // CONFIGURATION
+    // -----------------------------------------------------------
+    // Replace this with your raw iCal (.ics) public/secret URL:
+    const ICAL_FEED_URL = 'https://calendar.google.com/calendar/ical/YOUR_CALENDAR_ID/public/basic.ics';
+
+    // -----------------------------------------------------------
+    // CLOCK & HEADER
+    // -----------------------------------------------------------
+    function updateHeader() {
+      const now = new Date();
+      document.getElementById('clock').textContent = now.toLocaleTimeString([], { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      });
+      document.getElementById('currentDate').textContent = now.toLocaleDateString([], { 
+        weekday: 'long', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+    }
+    setInterval(updateHeader, 1000);
+    updateHeader();
+
+    // -----------------------------------------------------------
+    // CALENDAR INITIALIZATION
+    // -----------------------------------------------------------
+    document.addEventListener('DOMContentLoaded', function() {
+      const calendarEl = document.getElementById('calendar');
+
+      const calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'rollingWeek',
+        views: {
+          rollingWeek: {
+            type: 'timeGrid',
+            duration: { days: 7 }, // Display 7 days total
+            buttonText: '7 Day Rolling'
+          }
+        },
+        // Anchor start date to today
+        initialDate: new Date(),
+        allDaySlot: true,
+        slotMinTime: '06:00:00', // Earliest time row shown
+        slotMaxTime: '22:00:00', // Latest time row shown
+        slotDuration: '01:00:00',
+        height: '100%',
+        expandRows: true,
+        nowIndicator: true,
+        events: {
+          url: ICAL_FEED_URL,
+          format: 'ics'
+        }
+      });
+
+      calendar.render();
+
+      // Refresh calendar events every 15 minutes
+      setInterval(() => {
+        calendar.refetchEvents();
+      }, 15 * 60 * 1000);
+
+      // Check every minute if midnight has passed; advance the view so today stays on left
+      let lastDate = new Date().getDate();
+      setInterval(() => {
+        const currentDate = new Date().getDate();
+        if (currentDate !== lastDate) {
+          lastDate = currentDate;
+          calendar.gotoDate(new Date());
+        }
+      }, 60 * 1000);
+    });
+  </script>
+</body>
+</html>
